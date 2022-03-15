@@ -1,0 +1,583 @@
+https://review.udacity.com/#!/reviews/2431145
+
+Wrangling Project
+
+Correct:
+
+1. For each issue
+
+1. Define
+2. Code
+3. Test
+
+2. Extract the ratings to include decimals
+
+change type to float
+
+ratings = df.text.str.extract('((?:\d+\.)?\d+)\/(\d+)', expand=True)
+df.rating_numerator = ratings
+
+
+3. Merge multiple 
+
+There are cases where there are multiple dog stages in a row. Here is how to find them (df here is the Twitter archive dataset):
+
+df.groupby(["doggo", "floofer", "pupper", "puppo"]).size().reset_index().rename(columns={0: "count"})
+
+The pipeline needs to handle these cases. One way to do so is by concatenating them with commas (",") as follows:
+
+Note: Remember to convert 'None' or np.NaN to empty string "" for all columns prior to running the following code e.g. df.doggo.replace('None', '', inplace=True) and df.doggo.replace(np.NaN, '', inplace=True) (please do this for all other three categories too i.e. 'pupper', 'puppo', and 'floofer').
+
+df['stage'] = df.doggo + df.floofer + df.pupper + df.puppo
+df.loc[df.stage == 'doggopupper', 'stage'] = 'doggo, pupper'
+df.loc[df.stage == 'doggopuppo', 'stage'] = 'doggo, puppo'
+df.loc[df.stage == 'doggofloofer', 'stage'] = 'doggo, floofer'
+
+
+
+Visualization
+
+Bar Charts
+
+Plot bar chart
+sb.countplot(data = df, x = 'cat_var')
+
+Change color
+base_color = sb.color_palette()[0]
+sb.countplot(data = df, x = 'cat_var', color = base_color)
+
+Change order
+base_color = sb.color_palette()[0]
+cat_order = df['cat_var'].value_counts().index
+sb.countplot(data = df, x = 'cat_var', color = base_color, order = cat_order)
+
+Change order
+# this method requires pandas v0.21 or later
+level_order = ['Alpha', 'Beta', 'Gamma', 'Delta']
+ordered_cat = pd.api.types.CategoricalDtype(ordered = True, categories = level_order)
+df['cat_var'] = df['cat_var'].astype(ordered_cat)
+
+# # use this method if you have pandas v0.20.3 or earlier
+# df['cat_var'] = df['cat_var'].astype('category', ordered = True,
+#                                      categories = level_order)
+
+base_color = sb.color_palette()[0]
+sb.countplot(data = df, x = 'cat_var', color = base_color)
+
+Just a Series
+sb.countplot(data_var)
+
+Horizontal
+base_color = sb.color_palette()[0]
+sb.countplot(data = df, y = 'cat_var', color = base_color)
+
+Rotate labels
+base_color = sb.color_palette()[0]
+sb.countplot(data = df, x = 'cat_var', color = base_color)
+plt.xticks(rotation = 90)
+
+
+Absolute vs Relative Frequency
+
+Absolute frequency is by default: pure counts.
+Relative frequency is where the value indicates the proportion of data taking each level rather than the absolute count. It helps to understand the distribution of data or want to compare levels in terms of proportions of the whole.
+
+Relabel the count axis in terms of proportions.
+# get proportion taken by most common group for derivation
+# of tick marks
+n_points = df.shape[0]
+max_count = df['cat_var'].value_counts().max()
+max_prop = max_count / n_points
+
+# generate tick mark locations and names
+tick_props = np.arange(0, max_prop, 0.05)
+tick_names = ['{:0.2f}'.format(v) for v in tick_props]
+
+# create the plot
+base_color = sb.color_palette()[0]
+sb.countplot(data = df, x = 'cat_var', color = base_color)
+plt.yticks(tick_props * n_points, tick_names)
+plt.ylabel('proportion')
+
+Including the relative frequency inside the bars
+# create the plot
+base_color = sb.color_palette()[0]
+sb.countplot(data = df, x = 'cat_var', color = base_color)
+
+# add annotations
+n_points = df.shape[0]
+cat_counts = df['cat_var'].value_counts()
+locs, labels = plt.xticks() # get the current tick locations and labels
+
+# loop through each pair of locations and labels
+for loc, label in zip(locs, labels):
+
+    # get the text property for the label to get the correct count
+    count = cat_counts[label.get_text()]
+    pct_string = '{:0.1f}%'.format(100*count/n_points)
+
+    # print the annotation just below the top of the bar
+    plt.text(loc, count-8, pct_string, ha = 'center', color = 'w')
+
+Counting Missing Data
+
+Visualization of missing data
+df.isna().sum()
+
+Use barplot to depict a summary of one quantitative variable against levels of a second, qualitative variable. It can also be used here.
+na_counts = df.isna().sum()
+base_color = sb.color_palette()[0]
+sb.barplot(na_counts.index.values, na_counts, color = base_color)
+
+From the 1st Pokemon exercise:
+ # data setup
+    pokemon = pd.read_csv('./data/pokemon.csv')
+    pkmn_types = pokemon.melt(id_vars = ['id','species'], 
+                          value_vars = ['type_1', 'type_2'], 
+                          var_name = 'type_level', value_name = 'type').dropna()
+
+    # get order of bars by frequency
+    type_counts = pkmn_types['type'].value_counts()
+    type_order = type_counts.index
+
+    # compute largest proportion
+    n_pokemon = pkmn_types['species'].unique().shape[0]
+    max_type_count = type_counts[0]
+    max_prop = max_type_count / n_pokemon
+
+    # establish tick locations and create plot
+    base_color = sb.color_palette()[0]
+    tick_props = np.arange(0, max_prop, 0.02)
+    tick_names = ['{:0.2f}'.format(v) for v in tick_props]
+
+    base_color = sb.color_palette()[0]
+    sb.countplot(data = pkmn_types, y = 'type', color = base_color, order = type_order)
+    plt.xticks(tick_props * n_pokemon, tick_names)
+    plt.xlabel('proportion')
+
+Pie Chart
+
+# code for the pie chart seen above
+sorted_counts = df['cat_var'].value_counts()
+plt.pie(sorted_counts, labels = sorted_counts.index, startangle = 90,
+        counterclock = False);
+plt.axis('square')
+
+Donut Plot
+
+sorted_counts = df['cat_var'].value_counts()
+plt.pie(sorted_counts, labels = sorted_counts.index, startangle = 90,
+        counterclock = False, wedgeprops = {'width' : 0.4});
+plt.axis('square')
+
+Histogram
+
+plt.hist(data = df, x = 'num_var')
+
+Create bins
+bin_edges = np.arange(0, df['num_var'].max()+1, 1)
+plt.hist(data = df, x = 'num_var', bins = bin_edges)
+
+Using distplot
+sb.distplot(df['num_var'])
+
+Specify bins
+bin_edges = np.arange(0, df['num_var'].max()+1, 1)
+sb.distplot(df['num_var'], bins = bin_edges, kde = False,
+            hist_kws = {'alpha' : 1})
+
+Figures, Axes, and Subplots
+
+One alternative:
+fig = plt.figure()
+ax = fig.add_axes([.125, .125, .775, .755])
+ax.hist(data = df, x = 'num_var')
+
+Specify axes:
+fig = plt.figure()
+ax = fig.add_axes([.125, .125, .775, .755])
+base_color = sb.color_palette()[0]
+sb.countplot(data = df, x = 'cat_var', color = base_color, ax = ax)
+
+Using subplot:
+plt.figure(figsize = [10, 5]) # larger figure size for subplots
+
+# example of somewhat too-large bin size
+plt.subplot(1, 2, 1) # 1 row, 2 cols, subplot 1
+bin_edges = np.arange(0, df['num_var'].max()+4, 4)
+plt.hist(data = df, x = 'num_var', bins = bin_edges)
+
+# example of somewhat too-small bin size
+plt.subplot(1, 2, 2) # 1 row, 2 cols, subplot 2
+bin_edges = np.arange(0, df['num_var'].max()+1/4, 1/4)
+plt.hist(data = df, x = 'num_var', bins = bin_edges)
+
+Other ways of doing this:
+fig, axes = plt.subplots(3, 4) # grid of 3x4 subplots
+axes = axes.flatten() # reshape from 3x4 array into 12-element vector
+for i in range(12):
+    plt.sca(axes[i]) # set the current Axes
+    plt.text(0.5, 0.5, i+1) # print conventional subplot index number to middle of Axes
+
+Choosing a Plot for Discrete Data
+
+If you want to plot a discrete quantitative variable, it is possible to select either a histogram or a bar chart to depict the data.
+
+Using a histogram can be problematic because of the bins.
+It is a good idea to add gaps between bars.
+The "rwidth" parameter sets the proportion of the bin widths that will be filled by each histogram bar:
+bin_edges = np.arange(1.5, 12.5+1, 1)
+plt.hist(die_rolls, bins = bin_edges, rwidth = 0.7)
+plt.xticks(np.arange(2, 12+1, 1))
+
+Descriptive Statistics, Outliers and Axis Limits
+
+In order to change a histogram's axis limits, you can add a Matplotlib xlim call to your code. The function takes a tuple of two numbers specifying the upper and lower bounds of the x-axis range. Alternatively, the xlim function can be called with two numeric arguments to the same result.
+
+plt.figure(figsize = [10, 5])
+
+# histogram on left: full data
+plt.subplot(1, 2, 1)
+bin_edges = np.arange(0, df['skew_var'].max()+2.5, 2.5)
+plt.hist(data = df, x = 'skew_var', bins = bin_edges)
+
+# histogram on right: focus in on bulk of data < 35
+plt.subplot(1, 2, 2)
+bin_edges = np.arange(0, 35+1, 1)
+plt.hist(data = df, x = 'skew_var', bins = bin_edges)
+plt.xlim(0, 35) # could also be called as plt.xlim((0, 35))
+
+Scales and Transformations
+
+Certain data distributions will find themselves amenable to scale transformations. The most common example of this is data that follows an approximately log-normal distribution. This is data that, in their natural units, can look highly skewed: lots of points with low values, with a very long tail of data points with large values. However, after applying a logarithmic transform to the data, the data will follow a normal distribution.
+
+plt.figure(figsize = [10, 5])
+
+# left histogram: data plotted in natural units
+plt.subplot(1, 2, 1)
+bin_edges = np.arange(0, data.max()+100, 100)
+plt.hist(data, bins = bin_edges)
+plt.xlabel('values')
+
+# right histogram: data plotted after direct log transformation
+plt.subplot(1, 2, 2)
+log_data = np.log10(data) # direct data transform
+log_bin_edges = np.arange(0.8, log_data.max()+0.1, 0.1)
+plt.hist(log_data, bins = log_bin_edges)
+plt.xlabel('log(values)')
+
+But logarithmic values can be hard to interpret.
+This is where scale transformations are handy. In a scale transformation, the gaps between values are based on the transformed scale, but you can interpret data in the variable's natural units.
+
+bin_edges = np.arange(0, data.max()+100, 100)
+plt.hist(data, bins = bin_edges)
+plt.xscale('log')
+
+But there is a bin size issue. We need to change them so they are evenly-space powers of 10.
+
+bin_edges = 10 ** np.arange(0.8, np.log10(data.max())+0.1, 0.1)
+plt.hist(data, bins = bin_edges)
+plt.xscale('log')
+tick_locs = [10, 30, 100, 300, 1000, 3000]
+plt.xticks(tick_locs, tick_locs)
+
+Alternative approach:
+def sqrt_trans(x, inverse = False):
+    """ transformation helper function """
+    if not inverse:
+        return np.sqrt(x)
+    else:
+        return x ** 2
+
+bin_edges = np.arange(0, sqrt_trans(data.max())+1, 1)
+plt.hist(data.apply(sqrt_trans), bins = bin_edges)
+tick_locs = np.arange(0, sqrt_trans(data.max())+10, 10)
+plt.xticks(tick_locs, sqrt_trans(tick_locs, inverse = True).astype(int))
+
+Bivariate
+
+Scatterplots and Correlation
+
+Scatterplot:
+plt.scatter(data = df, x = 'num_var1', y = 'num_var2')
+
+Using regplot:
+sb.regplot(data = df, x = 'num_var1', y = 'num_var2')
+
+
+If the trend looks like a log(y) ∝(propto) x relationship (that is, linear increases in the value of x are associated with linear increases in the log of y), plotting the regression line on the raw units is not appropriate. If we don't care about the regression line, then we could set fit_reg = False in the regplot function call. Otherwise, if we want to plot the regression line on the observed relationship in the data, we need to transform the data, as seen in the previous lesson.
+
+def log_trans(x, inverse = False):
+    if not inverse:
+        return np.log10(x)
+    else:
+        return np.power(10, x)
+
+sb.regplot(df['num_var1'], df['num_var2'].apply(log_trans))
+tick_locs = [10, 20, 50, 100, 200, 500]
+plt.yticks(log_trans(tick_locs), tick_locs)
+
+Overplotting, Transparency and Jitter
+
+Transparency:
+plt.scatter(data = df, x = 'disc_var1', y = 'disc_var2', alpha = 1/5)
+
+Jitter moves the position of each point slightly from its true value:
+sb.regplot(data = df, x = 'disc_var1', y = 'disc_var2', fit_reg = False,
+           x_jitter = 0.2, y_jitter = 0.2, scatter_kws = {'alpha' : 1/3})
+
+Heat Maps
+
+plt.figure(figsize = [12, 5])
+
+# left plot: scatterplot of discrete data with jitter and transparency
+plt.subplot(1, 2, 1)
+sb.regplot(data = df, x = 'disc_var1', y = 'disc_var2', fit_reg = False,
+           x_jitter = 0.2, y_jitter = 0.2, scatter_kws = {'alpha' : 1/3})
+
+# right plot: heat map with bin edges between values
+plt.subplot(1, 2, 2)
+bins_x = np.arange(0.5, 10.5+1, 1)
+bins_y = np.arange(-0.5, 10.5+1, 1)
+plt.hist2d(data = df, x = 'disc_var1', y = 'disc_var2',
+           bins = [bins_x, bins_y])
+plt.colorbar();
+
+Variation
+bins_x = np.arange(0.5, 10.5+1, 1)
+bins_y = np.arange(-0.5, 10.5+1, 1)
+plt.hist2d(data = df, x = 'disc_var1', y = 'disc_var2',
+           bins = [bins_x, bins_y], cmap = 'viridis_r', cmin = 0.5)
+plt.colorbar()
+
+Add annotations:
+# hist2d returns a number of different variables, including an array of counts
+bins_x = np.arange(0.5, 10.5+1, 1)
+bins_y = np.arange(-0.5, 10.5+1, 1)
+h2d = plt.hist2d(data = df, x = 'disc_var1', y = 'disc_var2',
+               bins = [bins_x, bins_y], cmap = 'viridis_r', cmin = 0.5)
+counts = h2d[0]
+
+# loop through the cell counts and add text annotations for each
+for i in range(counts.shape[0]):
+    for j in range(counts.shape[1]):
+        c = counts[i,j]
+        if c >= 7: # increase visibility on darkest cells
+            plt.text(bins_x[i]+0.5, bins_y[j]+0.5, int(c),
+                     ha = 'center', va = 'center', color = 'white')
+        elif c > 0:
+            plt.text(bins_x[i]+0.5, bins_y[j]+0.5, int(c),
+                     ha = 'center', va = 'center', color = 'black')
+
+Violin Plots
+
+sb.violinplot(data = df, x = 'cat_var', y = 'num_var')
+
+Change color, remove middle thingy:
+base_color = sb.color_palette()[0]
+sb.violinplot(data = df, x = 'cat_var', y = 'num_var', color = base_color,
+              inner = None)
+
+Horizontal:
+base_color = sb.color_palette()[0]
+sb.violinplot(data = df, x = 'num_var', y = 'cat_var', color = base_color,
+              inner = None)
+
+Box Plots
+
+plt.figure(figsize = [10, 5])
+base_color = sb.color_palette()[0]
+
+# left plot: violin plot
+plt.subplot(1, 2, 1)
+ax1 = sb.violinplot(data = df, x = 'cat_var', y = 'num_var', color = base_color)
+
+# right plot: box plot
+plt.subplot(1, 2, 2)
+sb.boxplot(data = df, x = 'cat_var', y = 'num_var', color = base_color)
+plt.ylim(ax1.get_ylim()) # set y-axis limits to be same as left plot
+
+Horizontal:
+base_color = sb.color_palette()[0]
+sb.boxplot(data = df, x = 'num_var', y = 'cat_var', color = base_color
+
+Violin with quartiles:
+base_color = sb.color_palette()[0]
+sb.violinplot(data = df, x = 'cat_var', y = 'num_var', color = base_color,
+              inner = 'quartile')
+
+Clustered Bar Charts
+
+sb.countplot(data = df, x = 'cat_var1', hue = 'cat_var2')
+
+Set legend:
+x = sb.countplot(data = df, x = 'cat_var1', hue = 'cat_var2')
+ax.legend(loc = 8, ncol = 3, framealpha = 1, title = 'cat_var2')
+
+Faceting
+
+g = sb.FacetGrid(data = df, col = 'cat_var')
+g.map(plt.hist, "num_var")
+
+Add bins:
+bin_edges = np.arange(-3, df['num_var'].max()+1/3, 1/3)
+g = sb.FacetGrid(data = df, col = 'cat_var')
+g.map(plt.hist, "num_var", bins = bin_edges)
+
+Organizing the rows of graphs in rows of 5:
+group_means = df.groupby(['many_cat_var']).mean()
+group_order = group_means.sort_values(['num_var'], ascending = False).index
+
+g = sb.FacetGrid(data = df, col = 'many_cat_var', col_wrap = 5, size = 2,
+                 col_order = group_order)
+g.map(plt.hist, 'num_var', bins = np.arange(5, 15+1, 1))
+g.set_titles('{col_name}')
+
+Adaptation of Univariate Plots
+
+base_color = sb.color_palette()[0]
+sb.barplot(data = df, x = 'cat_var', y = 'num_var', color = base_color)
+
+Pointplot:
+sb.pointplot(data = df, x = 'cat_var', y = 'num_var', linestyles = "")
+plt.ylabel('Avg. value of num_var')
+
+Line Plots
+
+plt.errorbar(data = df, x = 'num_var1', y = 'num_var2')
+
+
+# set bin edges, compute centers
+bin_size = 0.25
+xbin_edges = np.arange(0.5, df['num_var1'].max()+bin_size, bin_size)
+xbin_centers = (xbin_edges + bin_size/2)[:-1]
+
+# compute statistics in each bin
+data_xbins = pd.cut(df['num_var1'], xbin_edges, right = False, include_lowest = True)
+y_means = df['num_var2'].groupby(data_xbins).mean()
+y_sems = df['num_var2'].groupby(data_xbins).sem()
+
+# plot the summarized data
+plt.errorbar(x = xbin_centers, y = y_means, yerr = y_sems)
+plt.xlabel('num_var1')
+plt.ylabel('num_var2')
+
+Extras:
+
+Stacked Plots
+
+cat1_order = ['East', 'South', 'West', 'North']
+cat2_order = ['Type X', 'Type Y', 'Type Z', 'Type O']
+
+plt.figure(figsize = [12, 5])
+
+# left plot: clustered bar chart, absolute counts
+plt.subplot(1, 2, 1)
+sb.countplot(data = df, x = 'cat_var1', hue = 'cat_var2',
+             order = cat1_order, hue_order = cat2_order)
+plt.legend()
+
+# right plot: stacked bar chart, absolute counts
+plt.subplot(1, 2, 2)
+
+baselines = np.zeros(len(cat1_order))
+# for each second-variable category:
+for i in range(len(cat2_order)):
+    # isolate the counts of the first category,
+    cat2 = cat2_order[i]
+    inner_counts = df[df['cat_var2'] == cat2]['cat_var1'].value_counts()
+    # then plot those counts on top of the accumulated baseline
+    plt.bar(x = np.arange(len(cat1_order)), height = inner_counts[cat1_order],
+            bottom = baselines)
+    baselines += inner_counts[cat1_order]
+
+plt.xticks(np.arange(len(cat1_order)), cat1_order)
+plt.legend(cat2_order)
+The strategy for this plot is very s
+
+
+Multivariate
+
+Non-Positional Encodings for Third Variables
+
+4 things to consider:
+- 3 numeric variables
+- 2 numeric variables and 1 categorical
+- 1 numeric variable and 2 categorical
+- 3 categorical
+
+Encoding via Shape:
+cat_markers = [['A', 'o'],
+               ['B', 's']]
+
+for cat, marker in cat_markers:
+    df_cat = df[df['cat_var1'] == cat]
+    plt.scatter(data = df_cat, x = 'num_var1', y = 'num_var2', marker = marker)
+plt.legend(['A','B'])
+
+Encoding via Size:
+plt.scatter(data = df, x = 'num_var1', y = 'num_var2', s = 'num_var3')
+
+# dummy series for adding legend
+sizes = [20, 35, 50]
+base_color = sb.color_palette()[0]
+legend_obj = []
+for s in sizes:
+    legend_obj.append(plt.scatter([], [], s = s, color = base_color))
+plt.legend(legend_obj, sizes)
+
+Color Palettes
+
+Qualitative
+sb.palplot(sb.color_palette(n_colors=9))
+
+Sequential
+sb.palplot(sb.color_palette('viridis', 9))
+
+Diverging
+sb.palplot(sb.color_palette('vlag', 9))
+
+Encoding via Color:
+Qualitative
+g = sb.FacetGrid(data = df, hue = 'cat_var1', size = 5)
+g.map(plt.scatter, 'num_var1', 'num_var2')
+g.add_legend()
+
+Quantitative
+plt.scatter(data = df, x = 'num_var1', y = 'num_var2', c = 'num_var3')
+plt.colorbar()
+
+
+Faceting in Two Directions
+
+g = sb.FacetGrid(data = df, col = 'cat_var1', size = 4)
+g.map(sb.boxplot, 'cat_var2', 'num_var2')
+
+More:
+g = sb.FacetGrid(data = df, col = 'cat_var2', row = 'cat_var1', size = 2.5,
+                margin_titles = True)
+g.map(plt.scatter, 'num_var1', 'num_var2')
+
+
+Other Adaptations of Bivariate Plots
+
+Plot Matrices
+
+g = sb.PairGrid(data = df, vars = ['num_var1', 'num_var2', 'num_var3'])
+g.map_diag(plt.hist)
+g.map_offdiag(plt.scatter)
+
+CASE STUDY
+price, carat, cut, color
+
+The least popular month is December.
+July and March represent more than 20% of the trips in 2019.
+
+Weekend days have around half less trips than regular week days.
+
+3:00 is the least popular time.
+There are two clear peaks between 07:00 and 10:00 and 16:00 and 19:00. This represent 54.2% of the trips in a day on average.
+
+jupyter nbconvert explanatory.ipynb --to slides --template output-toggle.tpl
+--post serve
+
